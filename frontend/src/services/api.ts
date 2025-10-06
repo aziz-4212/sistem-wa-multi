@@ -29,7 +29,8 @@ export const sessionService = {
 
   // Start session
   startSession: async (sessionId: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post(`/sessions/${sessionId}/start`);
+    // Allow longer timeout for bootstrapping Chromium & WA Web (backend responds 202 quickly now)
+    const response = await api.post(`/sessions/${sessionId}/start`, undefined, { timeout: 30000 });
     return response.data;
   },
 

@@ -39,15 +39,30 @@ export const routes = (whatsappManager: WhatsAppManager) => {
     }
   });
 
-  // Start a WhatsApp session
-  router.post('/sessions/:sessionId/start', async (req: Request, res: Response) => {
-    try {
-      const { sessionId } = req.params;
-      await whatsappManager.startSession(sessionId);
-      res.json({ success: true, message: 'Session started' });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  // Start a WhatsApp session (fire-and-forget; progress via Socket.IO)
+  router.post('/sessions/:sessionId/start', (req: Request, res: Response) => {
+    const { sessionId } = req.params;
+
+    // Quick validation to fail fast
+    const session = whatsappManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
     }
+
+    // If already in progress or connected, just acknowledge
+    if (session.status === 'connecting' || session.status === 'authenticated' || session.status === 'connected') {
+      return res.json({ success: true, message: 'Session is already starting or running' });
+    }
+
+    // Kick off asynchronously and return immediately
+    setImmediate(() => {
+      whatsappManager.startSession(sessionId).catch((err: any) => {
+        console.error(`Async start failed for session ${sessionId}:`, err?.message || err);
+        // Errors will be surfaced to clients via Socket.IO events if needed
+      });
+    });
+
+    return res.status(202).json({ success: true, message: 'Starting session' });
   });
 
   // Stop a WhatsApp session

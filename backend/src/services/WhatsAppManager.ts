@@ -143,8 +143,11 @@ export class WhatsAppManager {
         throw new Error(`Session ${sessionId} not found`);
       }
 
-      if (session.client.pupBrowser) {
-        throw new Error(`Session ${sessionId} is already running`);
+      // Prevent duplicate initialization attempts
+      // @ts-ignore - pupBrowser is internal; treat as running indicator
+      if ((session as any).client?.pupBrowser || session.status === 'connecting' || session.status === 'authenticated' || session.status === 'connected') {
+        console.log(`startSession: session ${sessionId} already in state ${session.status}, skipping re-init`);
+        return;
       }
 
       console.log(`Starting session: ${sessionId}`);
