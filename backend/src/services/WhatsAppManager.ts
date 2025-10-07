@@ -31,6 +31,10 @@ export class WhatsAppManager {
     this.io = io;
     this.database = new DatabaseService();
     this.initializeSessionsFolder();
+    
+    // Start health monitoring
+    this.startHealthMonitoring();
+    
     // Delay loading sessions to ensure database is fully initialized
     setTimeout(() => {
       this.loadSessionsFromDatabase();
@@ -260,10 +264,62 @@ export class WhatsAppManager {
       session.isReady = false;
       session.status = 'disconnected';
       
-      // Update database
-      await this.database.updateSessionStatus(id, 'disconnected', false);
+      // Check if this is a logout (check string representation for logout indicators)
+      const reasonStr = reason?.toString().toLowerCase() || '';
+      if (reasonStr.includes('logout') || reasonStr.includes('navigation') || reason === 'LOGOUT') {
+        console.log(`🚪 Session ${id} logged out from mobile - removing session`);
+        
+        // Remove session completely when logged out from mobile
+        await this.deleteSession(id);
+        
+        this.io.emit('session-logout', { 
+          sessionId: id, 
+          reason: 'Logged out from mobile device',
+          message: 'Session removed due to mobile logout'
+        });
+      } else {
+        // Update database for normal disconnection
+        await this.database.updateSessionStatus(id, 'disconnected', false);
+        
+        this.io.emit('session-disconnected', { sessionId: id, reason });
+      }
+    });
+
+    // Handle remote logout event specifically
+    client.on('remote_session_saved', async () => {
+      console.log(`📱 Remote session saved for ${id}`);
+    });
+
+    // Handle when session is logged out remotely
+    client.on('session_revoked', async () => {
+      console.log(`🚪 Session ${id} revoked/logged out remotely - removing session`);
       
-      this.io.emit('session-disconnected', { sessionId: id, reason });
+      // Remove session when logged out from another device
+      await this.deleteSession(id);
+      
+      this.io.emit('session-logout', { 
+        sessionId: id, 
+        reason: 'Session revoked from another device',
+        message: 'Session removed due to remote logout'
+      });
+    });
+
+    // Handle when WhatsApp Web is logged out
+    client.on('change_state', async (state) => {
+      console.log(`Session ${id} state changed to: ${state}`);
+      
+      if (state === 'UNPAIRED' || state === 'UNPAIRED_IDLE') {
+        console.log(`🚪 Session ${id} unpaired/logged out - removing session`);
+        
+        // Remove session when unpaired (logged out from mobile)
+        await this.deleteSession(id);
+        
+        this.io.emit('session-logout', { 
+          sessionId: id, 
+          reason: 'Unpaired from mobile device',
+          message: 'Session removed - logged out from mobile'
+        });
+      }
     });
 
     client.on('message', async (message) => {
@@ -387,6 +443,23 @@ export class WhatsAppManager {
 
       // Verify client state
       const clientState = await session.client.getState();
+      
+      // If client is unpaired, it means logged out from mobile
+      if (clientState === 'UNPAIRED' || clientState === 'UNPAIRED_IDLE') {
+        console.log(`🚪 Session ${sessionId} detected as unpaired - removing session`);
+        
+        // Remove session when unpaired
+        await this.deleteSession(sessionId);
+        
+        this.io.emit('session-logout', { 
+          sessionId, 
+          reason: 'Detected unpaired state',
+          message: 'Session removed - logged out from mobile'
+        });
+        
+        return false;
+      }
+      
       return clientState === 'CONNECTED';
     } catch (error) {
       console.error(`Health check failed for session ${sessionId}:`, error);
@@ -394,20 +467,62 @@ export class WhatsAppManager {
     }
   }
 
+  // Start periodic health monitoring
+  startHealthMonitoring(): void {
+    setInterval(async () => {
+      if (this.sessions.size === 0) return;
+      
+      console.log(`🔍 Running health check for ${this.sessions.size} sessions`);
+      
+      for (const [sessionId, session] of this.sessions) {
+        if (session.status === 'connected') {
+          try {
+            await this.validateSessionHealth(sessionId);
+          } catch (error) {
+            console.error(`Health check error for session ${sessionId}:`, error);
+          }
+        }
+      }
+    }, 60000); // Check every minute
+  }
+
   async deleteSession(sessionId: string): Promise<void> {
+    console.log(`🗑️ Deleting session: ${sessionId}`);
     const session = this.sessions.get(sessionId);
     if (session) {
-      await this.stopSession(sessionId);
+      try {
+        // Stop session first
+        await this.stopSession(sessionId);
+      } catch (error) {
+        console.error(`Error stopping session ${sessionId} during deletion:`, error);
+      }
+      
+      // Remove from memory
       this.sessions.delete(sessionId);
+      console.log(`📝 Session ${sessionId} removed from memory`);
       
       // Remove session data from filesystem
       const sessionPath = path.join(process.cwd(), '.wwebjs_auth', `session-${sessionId}`);
       if (fs.existsSync(sessionPath)) {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
+        try {
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+          console.log(`📂 Session ${sessionId} auth files removed`);
+        } catch (error) {
+          console.error(`Error removing session files for ${sessionId}:`, error);
+        }
       }
       
       // Remove from database
-      await this.database.deleteSession(sessionId);
+      try {
+        await this.database.deleteSession(sessionId);
+        console.log(`🗄️ Session ${sessionId} removed from database`);
+      } catch (error) {
+        console.error(`Error removing session ${sessionId} from database:`, error);
+      }
+      
+      console.log(`✅ Session ${sessionId} completely deleted`);
+    } else {
+      console.log(`⚠️ Session ${sessionId} not found in memory`);
     }
   }
 

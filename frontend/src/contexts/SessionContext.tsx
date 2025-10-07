@@ -180,6 +180,16 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       }
     });
 
+    socket.on('session-logout', ({ sessionId, reason, message }) => {
+      // Remove session from local state when logged out from mobile
+      setSessions(prev => prev.filter(session => session.id !== sessionId));
+      toast.error(`Session ${sessionId} removed: ${message}`, {
+        duration: 5000,
+        icon: '🚪'
+      });
+      console.log(`Session ${sessionId} logged out: ${reason}`);
+    });
+
     socket.on('new-message', ({ sessionId, from, body }) => {
       toast(`New message in ${sessionId} from ${from}: ${body.substring(0, 50)}...`);
     });
@@ -191,6 +201,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       socket.off('auth-failure');
       socket.off('session-disconnected');
       socket.off('session-update');
+      socket.off('session-logout');
       socket.off('new-message');
     };
   }, [socket]);

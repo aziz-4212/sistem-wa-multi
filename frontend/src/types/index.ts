@@ -20,6 +20,7 @@ export interface SocketEvents {
   'session-authenticated': { sessionId: string };
   'auth-failure': { sessionId: string; error: string };
   'session-disconnected': { sessionId: string; reason: string };
+  'session-logout': { sessionId: string; reason: string; message: string };
   'new-message': {
     sessionId: string;
     from: string;
