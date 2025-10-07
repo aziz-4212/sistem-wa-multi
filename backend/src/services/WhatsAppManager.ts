@@ -199,11 +199,38 @@ export class WhatsAppManager {
       }
 
       if (messageData.media) {
+        console.log('Processing media file:', {
+          path: messageData.media.path,
+          filename: messageData.media.filename,
+          mimetype: messageData.media.mimetype
+        });
+
+        // Check if file exists
+        if (!fs.existsSync(messageData.media.path)) {
+          throw new Error(`Media file not found: ${messageData.media.path}`);
+        }
+
+        // Create MessageMedia with proper mimetype and filename
         const media = MessageMedia.fromFilePath(messageData.media.path);
-        return await session.client.sendMessage(chatId, media, {
+        
+        // Preserve original filename and mimetype
+        if (messageData.media.filename) {
+          media.filename = messageData.media.filename;
+        }
+        if (messageData.media.mimetype) {
+          media.mimetype = messageData.media.mimetype;
+        }
+
+        console.log('Sending media with caption:', messageData.message || '');
+        
+        const result = await session.client.sendMessage(chatId, media, {
           caption: messageData.message || ''
         });
+
+        console.log('Media message sent successfully');
+        return result;
       } else {
+        console.log('Sending text message:', messageData.message);
         return await session.client.sendMessage(chatId, messageData.message);
       }
     } catch (error) {

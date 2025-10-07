@@ -2,11 +2,34 @@ import { Router, Request, Response } from 'express';
 import { WhatsAppManager } from '../services/WhatsAppManager';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+
+// Configure multer to preserve file extensions
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Preserve original filename with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}_${timestamp}${ext}`);
+  }
+});
 
 const upload = multer({ 
-  dest: 'uploads/',
+  storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Allow all file types
+    cb(null, true);
   }
 });
 
@@ -160,6 +183,8 @@ export const routes = (whatsappManager: WhatsAppManager) => {
 
   // Send message with media
   router.post('/sessions/:sessionId/send-media', upload.single('media'), async (req: Request, res: Response) => {
+    let uploadedFilePath: string | undefined;
+    
     try {
       const { sessionId } = req.params;
       const { to, message } = req.body;
@@ -177,6 +202,16 @@ export const routes = (whatsappManager: WhatsAppManager) => {
         });
       }
 
+      uploadedFilePath = file.path;
+      
+      console.log('Sending media file:', {
+        originalname: file.originalname,
+        filename: file.filename,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size
+      });
+
       const result = await whatsappManager.sendMessage({
         sessionId,
         to,
@@ -188,8 +223,26 @@ export const routes = (whatsappManager: WhatsAppManager) => {
         }
       });
 
+      // Clean up uploaded file after successful send
+      if (fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+        console.log('Cleaned up uploaded file:', uploadedFilePath);
+      }
+
       res.json({ success: true, result });
     } catch (error: any) {
+      console.error('Error sending media message:', error);
+      
+      // Clean up uploaded file on error
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        try {
+          fs.unlinkSync(uploadedFilePath);
+          console.log('Cleaned up uploaded file after error:', uploadedFilePath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
+      }
+      
       res.status(400).json({ error: error.message });
     }
   });

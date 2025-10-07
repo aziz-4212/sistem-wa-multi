@@ -225,3 +225,7 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Uploads
+uploads/
+*.tmp

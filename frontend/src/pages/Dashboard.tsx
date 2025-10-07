@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Play, Square, Trash2, QrCode, Phone, RefreshCw } from 'lucide-react';
+import { Plus, Play, Square, Trash2, QrCode, Phone, RefreshCw, Send } from 'lucide-react';
 import { useSession } from '../contexts/SessionContext';
 import { WhatsAppSession } from '../types';
+import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { sessions, loading, refreshSessions, createSession, startSession, stopSession, deleteSession } = useSession();
@@ -156,6 +157,18 @@ const Dashboard: React.FC = () => {
                     Stop
                   </button>
                 )}
+                
+                {/* Send Message Button - only show if session is ready */}
+                {session.isReady && session.status === 'connected' && (
+                  <Link
+                    to="/send-message"
+                    className="btn-success flex items-center justify-center px-3"
+                    title="Send Message"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Link>
+                )}
+                
                 <button
                   onClick={() => deleteSession(session.id)}
                   className="btn-danger flex items-center justify-center px-3"

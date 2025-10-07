@@ -105,3 +105,24 @@ code {
 .btn-danger:hover {
   background-color: #c82333;
 }
+
+.btn-success {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  text-decoration: none;
+  color: white;
+}
