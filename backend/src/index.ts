@@ -69,4 +69,49 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:5003"}`);
-}); // Updated port to 5002
+});
+
+// Graceful shutdown
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  
+  try {
+    // Save all sessions to database first
+    await whatsappManager.saveAllSessionsToDatabase();
+    
+    // Close database connection
+    await whatsappManager.getDatabaseService().close();
+    
+    // Close server
+    server.close(() => {
+      console.log('✅ Server closed successfully');
+      process.exit(0);
+    });
+    
+    // Force exit after 10 seconds
+    setTimeout(() => {
+      console.log('⚠️ Forcing exit...');
+      process.exit(1);
+    }, 10000);
+    
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Handle nodemon restart
+process.once('SIGUSR2', async () => {
+  console.log('\n📄 Nodemon restart detected. Saving sessions...');
+  try {
+    await whatsappManager.saveAllSessionsToDatabase();
+    await whatsappManager.getDatabaseService().close();
+    console.log('✅ Sessions saved for restart');
+  } catch (error) {
+    console.error('❌ Error saving sessions on restart:', error);
+  }
+  process.kill(process.pid, 'SIGUSR2');
+});

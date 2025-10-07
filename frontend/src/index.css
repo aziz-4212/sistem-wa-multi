@@ -126,3 +126,18 @@ code {
   text-decoration: none;
   color: white;
 }
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+}

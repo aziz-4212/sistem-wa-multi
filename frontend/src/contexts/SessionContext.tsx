@@ -11,6 +11,7 @@ interface SessionContextType {
   createSession: (sessionId: string, sessionName: string) => Promise<void>;
   startSession: (sessionId: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
+  restartSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
 }
 
@@ -92,6 +93,18 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   };
 
+  const restartSession = async (sessionId: string) => {
+    try {
+      await sessionService.restartSession(sessionId);
+      toast.success('Session restart initiated');
+      // Session status will be updated via socket events
+    } catch (error: any) {
+      console.error('Error restarting session:', error);
+      toast.error(error.response?.data?.error || 'Failed to initiate restart');
+      throw error;
+    }
+  };
+
   const deleteSession = async (sessionId: string) => {
     try {
       await sessionService.deleteSession(sessionId);
@@ -151,6 +164,22 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       toast.error(`Session ${sessionId} disconnected: ${reason}`);
     });
 
+    socket.on('session-update', ({ sessionId, status, isReady, message }) => {
+      setSessions(prev => prev.map(session => 
+        session.id === sessionId 
+          ? { ...session, status, isReady, ...(status === 'restarting' ? { qrCode: undefined } : {}) }
+          : session
+      ));
+      
+      if (status === 'restarting') {
+        toast.loading(`${message}`, { id: `restart-${sessionId}` });
+      } else if (message && message.includes('failed')) {
+        toast.error(message, { id: `restart-${sessionId}` });
+      } else if (message && message.includes('successfully')) {
+        toast.success(message, { id: `restart-${sessionId}` });
+      }
+    });
+
     socket.on('new-message', ({ sessionId, from, body }) => {
       toast(`New message in ${sessionId} from ${from}: ${body.substring(0, 50)}...`);
     });
@@ -161,6 +190,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       socket.off('session-authenticated');
       socket.off('auth-failure');
       socket.off('session-disconnected');
+      socket.off('session-update');
       socket.off('new-message');
     };
   }, [socket]);
@@ -177,6 +207,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       createSession,
       startSession,
       stopSession,
+      restartSession,
       deleteSession,
     }}>
       {children}

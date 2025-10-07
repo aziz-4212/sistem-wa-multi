@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Play, Square, Trash2, QrCode, Phone, RefreshCw, Send } from 'lucide-react';
+import { Plus, Play, Square, Trash2, QrCode, Phone, RefreshCw, Send, RotateCcw } from 'lucide-react';
 import { useSession } from '../contexts/SessionContext';
 import { WhatsAppSession } from '../types';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const { sessions, loading, refreshSessions, createSession, startSession, stopSession, deleteSession } = useSession();
+  const { sessions, loading, refreshSessions, createSession, startSession, stopSession, restartSession, deleteSession } = useSession();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSessionId, setNewSessionId] = useState('');
   const [newSessionName, setNewSessionName] = useState('');
@@ -36,6 +36,8 @@ const Dashboard: React.FC = () => {
         return 'bg-yellow-100 text-yellow-800';
       case 'authenticated':
         return 'bg-blue-100 text-blue-800';
+      case 'restarting':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-red-100 text-red-800';
     }
@@ -49,6 +51,8 @@ const Dashboard: React.FC = () => {
         return <RefreshCw className="h-4 w-4 animate-spin" />;
       case 'authenticated':
         return <Phone className="h-4 w-4" />;
+      case 'restarting':
+        return <RotateCcw className="h-4 w-4 animate-spin" />;
       default:
         return <QrCode className="h-4 w-4" />;
     }
@@ -155,6 +159,20 @@ const Dashboard: React.FC = () => {
                   >
                     <Square className="h-4 w-4 mr-1" />
                     Stop
+                  </button>
+                )}
+                
+                {/* Restart Button - show for any non-disconnected session */}
+                {session.status !== 'disconnected' && (
+                  <button
+                    onClick={() => restartSession(session.id)}
+                    disabled={session.status === 'restarting'}
+                    className={`btn-warning flex items-center justify-center px-3 ${
+                      session.status === 'restarting' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title={session.status === 'restarting' ? 'Restarting...' : 'Restart Session'}
+                  >
+                    <RotateCcw className={`h-4 w-4 ${session.status === 'restarting' ? 'animate-spin' : ''}`} />
                   </button>
                 )}
                 

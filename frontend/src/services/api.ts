@@ -40,6 +40,13 @@ export const sessionService = {
     return response.data;
   },
 
+  // Restart session
+  restartSession: async (sessionId: string): Promise<{ success: boolean; message: string }> => {
+    // Restart operation returns 202 quickly, actual restart happens in background
+    const response = await api.post(`/sessions/${sessionId}/restart`, undefined, { timeout: 30000 });
+    return response.data;
+  },
+
   // Delete session
   deleteSession: async (sessionId: string): Promise<{ success: boolean; message: string }> => {
     const response = await api.delete(`/sessions/${sessionId}`);

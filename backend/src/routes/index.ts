@@ -99,6 +99,40 @@ export const routes = (whatsappManager: WhatsAppManager) => {
     }
   });
 
+  // Restart a WhatsApp session
+  router.post('/sessions/:sessionId/restart', async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      
+      // Run restart in background to avoid timeout
+      whatsappManager.restartSession(sessionId).catch(error => {
+        console.error(`Background restart failed for session ${sessionId}:`, error);
+      });
+      
+      // Return immediately with 202 status
+      res.status(202).json({ success: true, message: 'Session restart initiated' });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Check session health
+  router.get('/sessions/:sessionId/health', async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const isHealthy = await whatsappManager.validateSessionHealth(sessionId);
+      
+      res.json({ 
+        success: true,
+        sessionId,
+        isHealthy,
+        message: isHealthy ? 'Session is healthy' : 'Session needs attention'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Delete a WhatsApp session
   router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
     try {

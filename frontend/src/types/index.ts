@@ -4,7 +4,7 @@ export interface WhatsAppSession {
   isReady: boolean;
   qrCode?: string;
   phoneNumber?: string;
-  status: 'disconnected' | 'connecting' | 'connected' | 'authenticated';
+  status: 'disconnected' | 'connecting' | 'connected' | 'authenticated' | 'restarting';
 }
 
 export interface MessageData {
