@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import SessionDetail from './pages/SessionDetail';
 import SendMessage from './pages/SendMessage';
+import BroadcastMessage from './pages/BroadcastMessage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/session/:sessionId" element={<SessionDetail />} />
                 <Route path="/send-message" element={<SendMessage />} />
+                <Route path="/broadcast" element={<BroadcastMessage />} />
               </Routes>
             </Layout>
             <Toaster 

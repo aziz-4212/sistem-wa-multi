@@ -14,6 +14,14 @@ export interface MessageData {
   media?: File;
 }
 
+export interface BroadcastMessageData {
+  sessionId: string;
+  recipients: string[]; // Array of phone numbers
+  message: string;
+  media?: File;
+  delay?: number; // Delay between messages in milliseconds
+}
+
 export interface SocketEvents {
   'qr-code': { sessionId: string; qrCode: string };
   'session-ready': { sessionId: string };

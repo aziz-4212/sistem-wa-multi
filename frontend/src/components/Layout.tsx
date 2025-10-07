@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Wifi, WifiOff, Home, Send } from 'lucide-react';
+import { Smartphone, Wifi, WifiOff, Home, Send, Users } from 'lucide-react';
 import { useSocket } from '../contexts/SocketContext';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Send Message', href: '/send-message', icon: Send },
+    { name: 'Broadcast', href: '/broadcast', icon: Users },
   ];
 
   return (

@@ -281,5 +281,77 @@ export const routes = (whatsappManager: WhatsAppManager) => {
     }
   });
 
+  // Broadcast message to multiple recipients
+  router.post('/sessions/:sessionId/broadcast', upload.single('media'), async (req: Request, res: Response) => {
+    let uploadedFilePath: string | undefined;
+    
+    try {
+      const { sessionId } = req.params;
+      const { recipients, message, delay } = req.body;
+      const file = req.file;
+
+      if (!recipients) {
+        return res.status(400).json({ 
+          error: 'recipients is required' 
+        });
+      }
+
+      if (!message && !file) {
+        return res.status(400).json({ 
+          error: 'message or media is required' 
+        });
+      }
+
+      const recipientList = JSON.parse(recipients);
+      const delayMs = parseInt(delay) || 1000;
+
+      if (!Array.isArray(recipientList) || recipientList.length === 0) {
+        return res.status(400).json({ 
+          error: 'recipients must be a non-empty array' 
+        });
+      }
+
+      if (file) {
+        uploadedFilePath = file.path;
+      }
+
+      console.log(`Starting broadcast to ${recipientList.length} recipients with ${delayMs}ms delay`);
+
+      const results = await whatsappManager.sendBroadcast({
+        sessionId,
+        recipients: recipientList,
+        message: message || '',
+        media: file ? {
+          path: file.path,
+          filename: file.originalname,
+          mimetype: file.mimetype
+        } : undefined,
+        delay: delayMs
+      });
+
+      // Clean up uploaded file after broadcast
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+        console.log('Cleaned up uploaded file:', uploadedFilePath);
+      }
+
+      res.json({ success: true, results });
+    } catch (error: any) {
+      console.error('Error sending broadcast:', error);
+      
+      // Clean up uploaded file on error
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        try {
+          fs.unlinkSync(uploadedFilePath);
+          console.log('Cleaned up uploaded file after error:', uploadedFilePath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
+      }
+      
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   return router;
 };

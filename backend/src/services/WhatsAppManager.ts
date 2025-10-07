@@ -22,6 +22,14 @@ export interface MessageData {
   media?: any;
 }
 
+export interface BroadcastData {
+  sessionId: string;
+  recipients: string[];
+  message: string;
+  media?: any;
+  delay: number;
+}
+
 export class WhatsAppManager {
   private sessions: Map<string, WhatsAppSession> = new Map();
   private io: Server;
@@ -627,6 +635,90 @@ export class WhatsAppManager {
       
       throw error;
     }
+  }
+
+  async sendBroadcast(broadcastData: BroadcastData): Promise<Array<{phone: string, status: 'success' | 'failed', error?: string}>> {
+    const session = this.sessions.get(broadcastData.sessionId);
+    if (!session) {
+      throw new Error(`Session ${broadcastData.sessionId} not found`);
+    }
+
+    // Enhanced validation for client readiness
+    if (!session.isReady || session.status !== 'connected') {
+      throw new Error(`Session ${broadcastData.sessionId} is not ready. Status: ${session.status}, Ready: ${session.isReady}`);
+    }
+
+    console.log(`🚀 Starting broadcast to ${broadcastData.recipients.length} recipients`);
+    const results: Array<{phone: string, status: 'success' | 'failed', error?: string}> = [];
+
+    // Validate and prepare media if provided
+    let media: MessageMedia | undefined;
+    if (broadcastData.media) {
+      if (!fs.existsSync(broadcastData.media.path)) {
+        throw new Error(`Media file not found: ${broadcastData.media.path}`);
+      }
+      
+      media = MessageMedia.fromFilePath(broadcastData.media.path);
+      if (broadcastData.media.filename) {
+        media.filename = broadcastData.media.filename;
+      }
+      if (broadcastData.media.mimetype) {
+        media.mimetype = broadcastData.media.mimetype;
+      }
+    }
+
+    for (let i = 0; i < broadcastData.recipients.length; i++) {
+      const phone = broadcastData.recipients[i];
+      let chatId = phone;
+      
+      // Format phone number
+      if (!chatId.includes('@')) {
+        chatId = `${chatId}@c.us`;
+      }
+
+      try {
+        console.log(`📤 Sending to ${phone} (${i + 1}/${broadcastData.recipients.length})`);
+
+        if (media) {
+          // Send media message
+          await session.client.sendMessage(chatId, media, {
+            caption: broadcastData.message || ''
+          });
+        } else {
+          // Send text message
+          await session.client.sendMessage(chatId, broadcastData.message);
+        }
+
+        results.push({
+          phone: phone,
+          status: 'success'
+        });
+
+        console.log(`✅ Successfully sent to ${phone}`);
+
+      } catch (error: any) {
+        console.error(`❌ Failed to send to ${phone}:`, error.message);
+        
+        results.push({
+          phone: phone,
+          status: 'failed',
+          error: error.message || 'Unknown error'
+        });
+      }
+
+      // Add delay between messages (except for the last one)
+      if (i < broadcastData.recipients.length - 1) {
+        console.log(`⏳ Waiting ${broadcastData.delay}ms before next message...`);
+        await new Promise(resolve => setTimeout(resolve, broadcastData.delay));
+      }
+    }
+
+    const successCount = results.filter(r => r.status === 'success').length;
+    const failedCount = results.filter(r => r.status === 'failed').length;
+
+    console.log(`🎯 Broadcast completed! Success: ${successCount}, Failed: ${failedCount}`);
+
+    return results;
   }
 
   getSession(sessionId: string): WhatsAppSession | undefined {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { WhatsAppSession, MessageData, SessionInfo } from '../types';
+import { WhatsAppSession, MessageData, BroadcastMessageData, SessionInfo } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
@@ -81,6 +81,26 @@ export const sessionService = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    });
+    return response.data;
+  },
+
+  // Send broadcast message to multiple recipients
+  sendBroadcastMessage: async (broadcastData: BroadcastMessageData): Promise<{ success: boolean; results: any[] }> => {
+    const formData = new FormData();
+    formData.append('recipients', JSON.stringify(broadcastData.recipients));
+    formData.append('message', broadcastData.message);
+    formData.append('delay', (broadcastData.delay || 1000).toString());
+    
+    if (broadcastData.media) {
+      formData.append('media', broadcastData.media);
+    }
+
+    const response = await api.post(`/sessions/${broadcastData.sessionId}/broadcast`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for broadcast
     });
     return response.data;
   },
