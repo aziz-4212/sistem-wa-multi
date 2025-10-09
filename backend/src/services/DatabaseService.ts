@@ -20,13 +20,16 @@ export class DatabaseService {
 
   private async initializeDatabase() {
     try {
-      // Create connection
-      this.connection = await mysql.createConnection({
+      // Create connection with timeout
+      const connectionConfig = {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME || 'whatsapp_multi_session'
-      });
+        database: process.env.DB_NAME || 'whatsapp_multi_session',
+        connectTimeout: 5000
+      };
+
+      this.connection = await mysql.createConnection(connectionConfig);
 
       console.log('Connected to MySQL database');
       
@@ -40,13 +43,20 @@ export class DatabaseService {
       console.log('✅ Database initialization completed');
       
     } catch (error: any) {
+      console.warn('⚠️ Database connection failed:', error.message);
+      console.warn('⚠️ Running without database - sessions will not be persistent');
+      
+      // Set initialized to true so the app can continue
+      this.isInitialized = true;
+      
       if (error.code === 'ER_BAD_DB_ERROR') {
         // Database doesn't exist, create it
         try {
           const tempConnection = await mysql.createConnection({
             host: process.env.DB_HOST || 'localhost',
             user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || ''
+            password: process.env.DB_PASSWORD || '',
+            connectTimeout: 5000
           });
           
           await tempConnection.execute(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'whatsapp_multi_session'}`);

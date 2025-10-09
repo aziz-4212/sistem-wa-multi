@@ -541,25 +541,23 @@ export class WhatsAppManager {
     }
 
     // Enhanced validation for client readiness
-    if (!session.isReady || session.status !== 'connected') {
+    if (!session.isReady || (session.status !== 'connected' && session.status !== 'authenticated')) {
       throw new Error(`Session ${messageData.sessionId} is not ready. Status: ${session.status}, Ready: ${session.isReady}`);
     }
 
     // Check if client and browser are properly initialized
     try {
-      // @ts-ignore - Access internal properties for validation
-      if (!session.client.pupBrowser || !session.client.pupPage) {
-        throw new Error(`Session ${messageData.sessionId} browser instance is not available`);
-      }
-
-      // Verify client state
-      const clientState = await session.client.getState();
-      if (clientState !== 'CONNECTED') {
-        throw new Error(`Session ${messageData.sessionId} client state is ${clientState}, expected CONNECTED`);
+      // @ts-ignore - Access internal properties for validation - but make it optional for stability
+      if (session.client && session.client.pupBrowser && session.client.pupPage) {
+        // Verify client state only if browser is available
+        const clientState = await session.client.getState();
+        if (clientState !== 'CONNECTED') {
+          console.warn(`Session ${messageData.sessionId} client state is ${clientState}, but continuing anyway`);
+        }
       }
     } catch (stateError) {
-      console.error(`Client state validation failed for session ${messageData.sessionId}:`, stateError);
-      throw new Error(`Session ${messageData.sessionId} is not properly initialized. Please restart the session.`);
+      console.warn(`Client state validation failed for session ${messageData.sessionId}, but continuing:`, (stateError as Error).message);
+      // Don't throw error, just warn and continue - session might still work
     }
 
     try {

@@ -353,5 +353,371 @@ export const routes = (whatsappManager: WhatsAppManager) => {
     }
   });
 
+  // ===== EXTERNAL API FOR OTHER SYSTEMS =====
+  
+  // Middleware for API key authentication
+  const authenticateApiKey = (req: Request, res: Response, next: any) => {
+    const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    
+    // Simple API key validation (in production, store this securely)
+    const validApiKey = process.env.API_KEY || 'whatsapp-api-key-2024';
+    
+    if (!apiKey || apiKey !== validApiKey) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid or missing API key. Please provide X-API-Key header or Authorization Bearer token.' 
+      });
+    }
+    
+    next();
+  };
+
+  // External API: Send simple text message
+  router.post('/send-message', authenticateApiKey, async (req: Request, res: Response) => {
+    try {
+      const { sessionId, to, message } = req.body;
+
+      // Validate required fields
+      if (!sessionId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'sessionId is required' 
+        });
+      }
+
+      if (!to) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'to (phone number) is required' 
+        });
+      }
+
+      if (!message) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'message is required' 
+        });
+      }
+
+      // Check if session exists and is ready
+      const session = whatsappManager.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ 
+          success: false,
+          error: `Session '${sessionId}' not found` 
+        });
+      }
+
+      if (!session.isReady) {
+        return res.status(400).json({ 
+          success: false,
+          error: `Session '${sessionId}' is not ready. Current status: ${session.status}` 
+        });
+      }
+
+      const result = await whatsappManager.sendMessage({
+        sessionId,
+        to,
+        message
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Message sent successfully',
+        data: {
+          sessionId,
+          to,
+          messageId: result.id || null,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('External API error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to send message'
+      });
+    }
+  });
+
+  // External API: Send message with media (file upload)
+  router.post('/send-media', authenticateApiKey, upload.single('file'), async (req: Request, res: Response) => {
+    let uploadedFilePath: string | undefined;
+    
+    try {
+      const { sessionId, to, message } = req.body;
+      const file = req.file;
+
+      // Validate required fields
+      if (!sessionId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'sessionId is required' 
+        });
+      }
+
+      if (!to) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'to (phone number) is required' 
+        });
+      }
+
+      if (!file) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'file is required' 
+        });
+      }
+
+      // Check if session exists and is ready
+      const session = whatsappManager.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ 
+          success: false,
+          error: `Session '${sessionId}' not found` 
+        });
+      }
+
+      if (!session.isReady) {
+        return res.status(400).json({ 
+          success: false,
+          error: `Session '${sessionId}' is not ready. Current status: ${session.status}` 
+        });
+      }
+
+      uploadedFilePath = file.path;
+
+      const result = await whatsappManager.sendMessage({
+        sessionId,
+        to,
+        message: message || '',
+        media: {
+          path: file.path,
+          filename: file.originalname,
+          mimetype: file.mimetype
+        }
+      });
+
+      // Clean up uploaded file after successful send
+      if (fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Media message sent successfully',
+        data: {
+          sessionId,
+          to,
+          messageId: result.id || null,
+          fileName: file.originalname,
+          fileSize: file.size,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('External API media error:', error);
+      
+      // Clean up uploaded file on error
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        try {
+          fs.unlinkSync(uploadedFilePath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
+      }
+      
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to send media message'
+      });
+    }
+  });
+
+  // External API: Send broadcast message
+  router.post('/broadcast', authenticateApiKey, upload.single('file'), async (req: Request, res: Response) => {
+    let uploadedFilePath: string | undefined;
+    
+    try {
+      const { sessionId, recipients, message, delay } = req.body;
+      const file = req.file;
+
+      // Validate required fields
+      if (!sessionId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'sessionId is required' 
+        });
+      }
+
+      if (!recipients) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'recipients is required (array of phone numbers)' 
+        });
+      }
+
+      if (!message && !file) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'message or file is required' 
+        });
+      }
+
+      // Check if session exists and is ready
+      const session = whatsappManager.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ 
+          success: false,
+          error: `Session '${sessionId}' not found` 
+        });
+      }
+
+      if (!session.isReady) {
+        return res.status(400).json({ 
+          success: false,
+          error: `Session '${sessionId}' is not ready. Current status: ${session.status}` 
+        });
+      }
+
+      // Parse recipients if it's a string
+      let recipientList;
+      try {
+        recipientList = typeof recipients === 'string' ? JSON.parse(recipients) : recipients;
+      } catch (parseError) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'recipients must be a valid JSON array of phone numbers' 
+        });
+      }
+
+      if (!Array.isArray(recipientList) || recipientList.length === 0) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'recipients must be a non-empty array of phone numbers' 
+        });
+      }
+
+      const delayMs = parseInt(delay) || 1000;
+
+      if (file) {
+        uploadedFilePath = file.path;
+      }
+
+      const results = await whatsappManager.sendBroadcast({
+        sessionId,
+        recipients: recipientList,
+        message: message || '',
+        media: file ? {
+          path: file.path,
+          filename: file.originalname,
+          mimetype: file.mimetype
+        } : undefined,
+        delay: delayMs
+      });
+
+      // Clean up uploaded file after broadcast
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+
+      // Count successful and failed sends
+      const successful = results.filter(r => r.status === 'success').length;
+      const failed = results.filter(r => r.status === 'failed').length;
+
+      res.json({ 
+        success: true, 
+        message: 'Broadcast completed',
+        data: {
+          sessionId,
+          totalRecipients: recipientList.length,
+          successful,
+          failed,
+          delay: delayMs,
+          results: results,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('External API broadcast error:', error);
+      
+      // Clean up uploaded file on error
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        try {
+          fs.unlinkSync(uploadedFilePath);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
+      }
+      
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to send broadcast'
+      });
+    }
+  });
+
+  // External API: Get session status
+  router.get('/session/:sessionId/status', authenticateApiKey, (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const session = whatsappManager.getSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ 
+          success: false,
+          error: `Session '${sessionId}' not found` 
+        });
+      }
+
+      res.json({ 
+        success: true,
+        data: {
+          sessionId: session.id,
+          sessionName: session.name,
+          status: session.status,
+          isReady: session.isReady,
+          phoneNumber: session.phoneNumber || null,
+          hasQRCode: !!session.qrCode
+        }
+      });
+    } catch (error: any) {
+      console.error('External API status error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to get session status'
+      });
+    }
+  });
+
+  // External API: Get all available sessions (override the internal sessions endpoint for external API)
+  router.get('/sessions-external', authenticateApiKey, (req: Request, res: Response) => {
+    try {
+      const sessions = whatsappManager.getAllSessions();
+      const sessionList = sessions.map(session => ({
+        sessionId: session.id,
+        sessionName: session.name,
+        status: session.status,
+        isReady: session.isReady,
+        phoneNumber: session.phoneNumber || null
+      }));
+
+      res.json({ 
+        success: true,
+        data: {
+          totalSessions: sessionList.length,
+          sessions: sessionList
+        }
+      });
+    } catch (error: any) {
+      console.error('External API sessions error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to get sessions'
+      });
+    }
+  });
+
   return router;
 };

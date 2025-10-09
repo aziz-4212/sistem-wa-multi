@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../contexts/SessionContext';
 import { sessionService } from '../services/api';
-import { WhatsAppSession } from '../types';
 import toast from 'react-hot-toast';
 import { Send, MessageCircle, Phone, FileImage, Loader2 } from 'lucide-react';
 

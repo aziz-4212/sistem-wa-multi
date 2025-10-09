@@ -1,0 +1,616 @@
+{
+	"info": {
+		"_postman_id": "whatsapp-api-collection-2024",
+		"name": "WhatsApp Multi-Session API",
+		"description": "Collection for testing WhatsApp Multi-Session API endpoints. This collection includes all external API endpoints for sending messages, broadcasting, and managing sessions.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "whatsapp-api-tester"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Test API Key",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions"
+							]
+						},
+						"description": "Test if API key is working by getting all sessions"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication related endpoints"
+		},
+		{
+			"name": "Sessions Management",
+			"item": [
+				{
+					"name": "Get All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions"
+							]
+						},
+						"description": "Get list of all available WhatsApp sessions"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "whatsapp-api-key-2024",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/sessions",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sessions"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"totalSessions\": 2,\n        \"sessions\": [\n            {\n                \"sessionId\": \"session1\",\n                \"sessionName\": \"My WhatsApp Session\",\n                \"status\": \"authenticated\",\n                \"isReady\": true,\n                \"phoneNumber\": \"6281234567890\"\n            },\n            {\n                \"sessionId\": \"session2\",\n                \"sessionName\": \"Second Session\",\n                \"status\": \"qr\",\n                \"isReady\": false,\n                \"phoneNumber\": null\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Session Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/session/{{session_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"session",
+								"{{session_id}}",
+								"status"
+							]
+						},
+						"description": "Get status of specific WhatsApp session"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "whatsapp-api-key-2024",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/session/session1/status",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"session",
+										"session1",
+										"status"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"sessionId\": \"session1\",\n        \"sessionName\": \"My WhatsApp Session\",\n        \"status\": \"authenticated\",\n        \"isReady\": true,\n        \"phoneNumber\": \"6281234567890\",\n        \"hasQRCode\": false\n    }\n}"
+						}
+					]
+				}
+			],
+			"description": "Endpoints for managing WhatsApp sessions"
+		},
+		{
+			"name": "Send Messages",
+			"item": [
+				{
+					"name": "Send Text Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sessionId\": \"{{session_id}}\",\n    \"to\": \"{{phone_number}}\",\n    \"message\": \"Hello from Postman! This is a test message from external API.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/send-message",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"send-message"
+							]
+						},
+						"description": "Send text message to WhatsApp number"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-API-Key",
+										"value": "whatsapp-api-key-2024",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sessionId\": \"session1\",\n    \"to\": \"6281234567890\",\n    \"message\": \"Hello from external system!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/send-message",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"send-message"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Message sent successfully\",\n    \"data\": {\n        \"sessionId\": \"session1\",\n        \"to\": \"6281234567890\",\n        \"messageId\": \"msg_123\",\n        \"timestamp\": \"2024-10-09T10:30:00.000Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Send Media Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}",
+									"type": "text"
+								},
+								{
+									"key": "to",
+									"value": "{{phone_number}}",
+									"type": "text"
+								},
+								{
+									"key": "message",
+									"value": "Check out this file from Postman!",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/send-media",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"send-media"
+							]
+						},
+						"description": "Send media message (image, document, video, etc.) to WhatsApp number"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "whatsapp-api-key-2024",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "sessionId",
+											"value": "session1",
+											"type": "text"
+										},
+										{
+											"key": "to",
+											"value": "6281234567890",
+											"type": "text"
+										},
+										{
+											"key": "message",
+											"value": "Check this file!",
+											"type": "text"
+										},
+										{
+											"key": "file",
+											"type": "file",
+											"src": "/path/to/image.jpg"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/send-media",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"send-media"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Media message sent successfully\",\n    \"data\": {\n        \"sessionId\": \"session1\",\n        \"to\": \"6281234567890\",\n        \"messageId\": \"msg_124\",\n        \"fileName\": \"image.jpg\",\n        \"fileSize\": 102400,\n        \"timestamp\": \"2024-10-09T10:35:00.000Z\"\n    }\n}"
+						}
+					]
+				}
+			],
+			"description": "Endpoints for sending individual messages"
+		},
+		{
+			"name": "Broadcast Messages",
+			"item": [
+				{
+					"name": "Broadcast Text Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}",
+									"type": "text"
+								},
+								{
+									"key": "recipients",
+									"value": "[\"6281234567890\",\"6281234567891\",\"6281234567892\"]",
+									"type": "text",
+									"description": "JSON array of phone numbers"
+								},
+								{
+									"key": "message",
+									"value": "Broadcast message from Postman! This message is sent to multiple recipients.",
+									"type": "text"
+								},
+								{
+									"key": "delay",
+									"value": "2000",
+									"type": "text",
+									"description": "Delay between messages in milliseconds"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/broadcast",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"broadcast"
+							]
+						},
+						"description": "Send broadcast text message to multiple recipients"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "whatsapp-api-key-2024",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "sessionId",
+											"value": "session1",
+											"type": "text"
+										},
+										{
+											"key": "recipients",
+											"value": "[\"6281234567890\",\"6281234567891\",\"6281234567892\"]",
+											"type": "text"
+										},
+										{
+											"key": "message",
+											"value": "Broadcast message from external system",
+											"type": "text"
+										},
+										{
+											"key": "delay",
+											"value": "2000",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/broadcast",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"broadcast"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"message\": \"Broadcast completed\",\n    \"data\": {\n        \"sessionId\": \"session1\",\n        \"totalRecipients\": 3,\n        \"successful\": 2,\n        \"failed\": 1,\n        \"delay\": 2000,\n        \"results\": [\n            {\n                \"to\": \"6281234567890\",\n                \"success\": true,\n                \"messageId\": \"msg_125\"\n            },\n            {\n                \"to\": \"6281234567891\",\n                \"success\": true,\n                \"messageId\": \"msg_126\"\n            },\n            {\n                \"to\": \"6281234567892\",\n                \"success\": false,\n                \"error\": \"Number not registered\"\n            }\n        ],\n        \"timestamp\": \"2024-10-09T10:40:00.000Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Broadcast Media Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "sessionId",
+									"value": "{{session_id}}",
+									"type": "text"
+								},
+								{
+									"key": "recipients",
+									"value": "[\"6281234567890\",\"6281234567891\"]",
+									"type": "text",
+									"description": "JSON array of phone numbers"
+								},
+								{
+									"key": "message",
+									"value": "Broadcast media message from Postman!",
+									"type": "text"
+								},
+								{
+									"key": "delay",
+									"value": "3000",
+									"type": "text",
+									"description": "Delay between messages in milliseconds"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Media file to broadcast"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/broadcast",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"broadcast"
+							]
+						},
+						"description": "Send broadcast media message to multiple recipients"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for broadcasting messages to multiple recipients"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Pre-request script to validate API key",
+					"if (!pm.variables.get('api_key')) {",
+					"    console.log('Warning: API key not set in environment variables');",
+					"}",
+					"",
+					"if (!pm.variables.get('base_url')) {",
+					"    console.log('Warning: Base URL not set in environment variables');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script",
+					"pm.test('Response time is less than 10000ms', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(10000);",
+					"});",
+					"",
+					"pm.test('Response has success field', function () {",
+					"    const responseJson = pm.response.json();",
+					"    pm.expect(responseJson).to.have.property('success');",
+					"});",
+					"",
+					"pm.test('Status code is 200 for successful requests', function () {",
+					"    const responseJson = pm.response.json();",
+					"    if (responseJson.success === true) {",
+					"        pm.expect(pm.response.code).to.equal(200);",
+					"    }",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "api_key",
+			"value": "whatsapp-api-key-2024",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "session1",
+			"type": "string"
+		},
+		{
+			"key": "phone_number",
+			"value": "6281234567890",
+			"type": "string"
+		}
+	]
+}
