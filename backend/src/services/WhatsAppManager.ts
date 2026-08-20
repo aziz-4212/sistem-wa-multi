@@ -56,6 +56,48 @@ export class WhatsAppManager {
     }
   }
 
+  private getClientConfig(clientId: string): any {
+    // Check if Chrome exists, otherwise use default
+    const chromePaths = [
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    
+    let executablePath: string | undefined;
+    for (const chromePath of chromePaths) {
+      if (fs.existsSync(chromePath)) {
+        executablePath = chromePath;
+        console.log(`Using Chrome at: ${chromePath}`);
+        break;
+      }
+    }
+
+    const config: any = {
+      authStrategy: new LocalAuth({ clientId }),
+      puppeteer: {
+        headless: false,
+        args: [
+          '--disable-popup-blocking',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage'
+        ]
+      },
+      // webVersionCache: {
+      //   type: 'remote',
+      //   remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/refs/heads/main/html/2.3000.1031490220-alpha.html'
+      // }
+    };
+
+    if (executablePath) {
+      config.puppeteer.executablePath = executablePath;
+    } else {
+      console.warn('Chrome not found at standard paths, using default browser');
+    }
+
+    return config;
+  }
+
   private async loadSessionsFromDatabase(): Promise<void> {
     try {
       console.log('Starting to load sessions from database...');
@@ -73,23 +115,7 @@ export class WhatsAppManager {
           console.log(`✅ Auth found for session: ${dbSession.id} - Restoring...`);
           
           // Create client with existing auth
-          const client = new Client({
-            authStrategy: new LocalAuth({ clientId: dbSession.id }),
-            puppeteer: {
-              headless: true,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor'
-              ]
-            }
-          });
+          const client = new Client(this.getClientConfig(dbSession.id));
 
           const session: WhatsAppSession = {
             id: dbSession.id,
@@ -119,23 +145,7 @@ export class WhatsAppManager {
           await this.database.updateSessionStatus(dbSession.id, 'disconnected', false);
           
           // Still create the session object but without starting it
-          const client = new Client({
-            authStrategy: new LocalAuth({ clientId: dbSession.id }),
-            puppeteer: {
-              headless: true,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor'
-              ]
-            }
-          });
+          const client = new Client(this.getClientConfig(dbSession.id));
 
           const session: WhatsAppSession = {
             id: dbSession.id,
@@ -165,23 +175,7 @@ export class WhatsAppManager {
 
       console.log(`Creating session: ${sessionId} with name: ${sessionName}`);
 
-      const client = new Client({
-        authStrategy: new LocalAuth({ clientId: sessionId }),
-        puppeteer: {
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
-          ]
-        }
-      });
+      const client = new Client(this.getClientConfig(sessionId));
 
       const session: WhatsAppSession = {
         id: sessionId,
