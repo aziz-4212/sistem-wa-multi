@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import SessionDetail from './pages/SessionDetail';
 import SendMessage from './pages/SendMessage';
 import BroadcastMessage from './pages/BroadcastMessage';
+import BroadcastCustomTemplateMessage from './pages/BroadcastCustomTemplateMessage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
                 <Route path="/session/:sessionId" element={<SessionDetail />} />
                 <Route path="/send-message" element={<SendMessage />} />
                 <Route path="/broadcast" element={<BroadcastMessage />} />
+                <Route path="/broadcast-custom-template" element={<BroadcastCustomTemplateMessage />} />
               </Routes>
             </Layout>
             <Toaster 
